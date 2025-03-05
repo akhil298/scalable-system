@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSV Upload and Processing</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 30px;
+      }
+      h1 {
+        text-align: center;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      input[type="file"],
+      input[type="button"] {
+        padding: 10px;
+        width: 100%;
+        margin: 5px 0;
+      }
+      #status-result,
+      #download-link {
+        display: none;
+        margin-top: 20px;
+      }
+      .result {
+        background-color: #f1f1f1;
+        padding: 10px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>CSV Upload and Processing</h1>
+
+    <div class="container">
+      <h2>Upload CSV File</h2>
+      <div class="form-group">
+        <input type="file" id="csvFile" accept=".csv" />
+      </div>
+      <div class="form-group">
+        <input type="button" value="Upload CSV" onclick="uploadCSV()" />
+      </div>
+
+      <div id="request-id-result" class="result"></div>
+
+      <h2>Check Status</h2>
+      <div class="form-group">
+        <input
+          type="text"
+          id="statusRequestId"
+          placeholder="Enter Request ID"
+        />
+      </div>
+      <div class="form-group">
+        <input type="button" value="Check Status" onclick="checkStatus()" />
+      </div>
+      <div id="status-result" class="result"></div>
+
+      <h2>Download Processed CSV</h2>
+      <div class="form-group">
+        <input
+          type="text"
+          id="downloadRequestId"
+          placeholder="Enter Request ID for CSV"
+        />
+      </div>
+      <div class="form-group">
+        <input type="button" value="Download CSV" onclick="downloadCSV()" />
+      </div>
+      <div id="download-link">
+        <a href="" id="download-link-a" target="_blank"
+          >Click here to download the CSV</a
+        >
+      </div>
+    </div>
+
+    <script>
+      let requestId = null;
+
+      // Function to upload CSV and get the request ID
+      function uploadCSV() {
+        const fileInput = document.getElementById("csvFile");
+        const file = fileInput.files[0];
+        if (!file) {
+          alert("Please select a CSV file.");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        fetch("/upload_csv", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.request_id) {
+              requestId = data.request_id;
+              document.getElementById(
+                "request-id-result"
+              ).innerHTML = `<p><strong>Request ID:</strong> ${requestId}</p>`;
+              document.getElementById("request-id-result").style.display =
+                "block";
+            } else {
+              alert("Error: " + (data.error || "Failed to upload CSV"));
+            }
+          })
+          .catch((error) => alert("Error uploading file: " + error));
+      }
+
+      // Function to check the status of the request
+      function checkStatus() {
+        const statusRequestId = document
+          .getElementById("statusRequestId")
+          .value.trim();
+        if (!statusRequestId) {
+          alert("Please enter a Request ID.");
+          return;
+        }
+
+        fetch(`/check_status/${statusRequestId}`, {
+          method: "GET",
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            const statusResult = document.getElementById("status-result");
+            if (data.status) {
+              statusResult.innerHTML = `<p><strong>Status:</strong> ${data.status}</p>`;
+              statusResult.style.display = "block";
+            } else {
+              alert("Error: " + (data.error || "Failed to get status"));
+            }
+          })
+          .catch((error) => alert("Error checking status: " + error));
+      }
+
+      // Function to download the processed CSV
+      function downloadCSV() {
+        const downloadRequestId = document
+          .getElementById("downloadRequestId")
+          .value.trim();
+        if (!downloadRequestId) {
+          alert("Please enter a Request ID.");
+          return;
+        }
+
+        const downloadLink = document.getElementById("download-link");
+        const downloadLinkAnchor = document.getElementById("download-link-a");
+
+        downloadLinkAnchor.href = `/download_csv/${downloadRequestId}`;
+        downloadLink.style.display = "block";
+      }
+    </script>
+  </body>
+</html>
